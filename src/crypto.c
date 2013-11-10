@@ -58,11 +58,12 @@ void crypto_make_pipe_cache(nitro_tcp_socket_t *s, nitro_pipe_t *p) {
 
 void crypto_generate_nonce(nitro_pipe_t *p, uint8_t *ptr) {
     NITRO_THREAD_CHECK;
-
-    (*p->nonce_incr)++;
-
+    
+    /* Prevent unaligned access exception on armv7. (EXC_ARM_DA_ALIGN) */
+    uint64_t nonce_incr = *(p->nonce_incr) + 1;
+    memcpy(p->nonce_incr, &nonce_incr, sizeof(uint64_t));
     /* Note: Cannot send more than (1 << 64) */
-    assert(*p->nonce_incr != 0);
+    assert(nonce_incr != 0);
 
     memcpy(ptr, p->nonce_gen, crypto_box_NONCEBYTES);
 }
